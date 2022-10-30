@@ -13,11 +13,13 @@ require (
 	github.com/labstack/echo/v4 v4.9.1
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/rs/zerolog v1.28.0
+	github.com/rubenv/sql-migrate v1.2.0
 	github.com/segmentio/ksuid v1.0.4
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 )
 
 require (
+	github.com/go-gorp/gorp/v3 v3.0.2 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
