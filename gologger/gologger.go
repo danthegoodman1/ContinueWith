@@ -44,8 +44,12 @@ func NewLogger() zerolog.Logger {
 	if os.Getenv("PRETTY") == "1" {
 		logger = logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
-	if os.Getenv("DEBUG") == "1" {
+	if os.Getenv("TRACE") == "1" {
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	} else if os.Getenv("DEBUG") == "1" {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
 	return logger
