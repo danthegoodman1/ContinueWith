@@ -33,8 +33,12 @@ func init() {
 }
 
 func NewLogger() zerolog.Logger {
-	zerolog.TimeFieldFormat = time.RFC3339Nano
-	// zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	if os.Getenv("LOG_TIME_MS") == "1" {
+		// Log with milliseconds
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	} else {
+		zerolog.TimeFieldFormat = time.RFC3339Nano
+	}
 	zerolog.TimestampFieldName = "time"
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
