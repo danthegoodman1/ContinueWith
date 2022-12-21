@@ -39,6 +39,10 @@ func NewLogger() zerolog.Logger {
 	} else {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 	}
+
+	// Google logging support
+	// zerolog.LevelFieldName = "severity"
+
 	zerolog.TimestampFieldName = "time"
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
