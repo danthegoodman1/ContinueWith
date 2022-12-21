@@ -38,6 +38,7 @@ func main() {
 	<-c
 	logger.Warn().Msg("received shutdown signal!")
 
+	// For AWS ALB needing some time to de-register pod
 	// Convert the time to seconds
 	sleepTime := utils.GetEnvOrDefaultInt("SHUTDOWN_SLEEP_SEC", 0)
 	logger.Info().Msg(fmt.Sprintf("sleeping for %ds before exiting", sleepTime))
