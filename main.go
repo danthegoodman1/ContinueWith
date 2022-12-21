@@ -39,7 +39,7 @@ func main() {
 	logger.Warn().Msg("received shutdown signal!")
 
 	// Convert the time to seconds
-	sleepTime := utils.GetEnvOrDefaultInt("SHUTDOWN_SLEEP_SEC", 35)
+	sleepTime := utils.GetEnvOrDefaultInt("SHUTDOWN_SLEEP_SEC", 0)
 	logger.Info().Msg(fmt.Sprintf("sleeping for %ds before exiting", sleepTime))
 
 	time.Sleep(time.Second * time.Duration(sleepTime))
