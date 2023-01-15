@@ -32,6 +32,15 @@ func init() {
 	}
 }
 
+func GetEnvOrDefault(env, defaultVal string) string {
+	e := os.Getenv(env)
+	if e == "" {
+		return defaultVal
+	} else {
+		return e
+	}
+}
+
 func NewLogger() zerolog.Logger {
 	if os.Getenv("LOG_TIME_MS") == "1" {
 		// Log with milliseconds
@@ -40,8 +49,7 @@ func NewLogger() zerolog.Logger {
 		zerolog.TimeFieldFormat = time.RFC3339Nano
 	}
 
-	// Google logging support
-	// zerolog.LevelFieldName = "severity"
+	zerolog.LevelFieldName = GetEnvOrDefault("LOG_LEVEL_KEY", "level")
 
 	zerolog.TimestampFieldName = "time"
 
