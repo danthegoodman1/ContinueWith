@@ -1,6 +1,8 @@
 package gologger
 
 import (
+	"context"
+	"errors"
 	"os"
 	"runtime"
 	"strconv"
@@ -39,6 +41,14 @@ func GetEnvOrDefault(env, defaultVal string) string {
 	} else {
 		return e
 	}
+}
+
+// Makes context.Canceled errors a warn (for when people abandon requests)
+func LvlForErr(err error) zerolog.Level {
+	if errors.Is(err, context.Canceled) {
+		return zerolog.WarnLevel
+	}
+	return zerolog.ErrorLevel
 }
 
 func NewLogger() zerolog.Logger {
