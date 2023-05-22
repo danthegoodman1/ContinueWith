@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/joho/godotenv"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +19,11 @@ import (
 var logger = gologger.NewLogger()
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		logger.Error().Err(err).Msg("error loading .env file, exiting")
+		os.Exit(1)
+	}
 	logger.Debug().Msg("starting Tangia mono api")
 
 	if err := crdb.ConnectToDB(); err != nil {
@@ -25,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := migrations.CheckMigrations(utils.CRDB_DSN)
+	err = migrations.CheckMigrations(utils.CRDB_DSN)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error checking migrations")
 		os.Exit(1)
