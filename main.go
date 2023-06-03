@@ -19,10 +19,12 @@ import (
 var logger = gologger.NewLogger()
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		logger.Error().Err(err).Msg("error loading .env file, exiting")
-		os.Exit(1)
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			logger.Error().Err(err).Msg("error loading .env file, exiting")
+			os.Exit(1)
+		}
 	}
 	logger.Debug().Msg("starting Tangia mono api")
 
