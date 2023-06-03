@@ -20,7 +20,7 @@ var logger = gologger.NewLogger()
 
 func main() {
 	if _, err := os.Stat(".env"); err == nil {
-		err := godotenv.Load()
+		err = godotenv.Load()
 		if err != nil {
 			logger.Error().Err(err).Msg("error loading .env file, exiting")
 			os.Exit(1)
@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = migrations.CheckMigrations(utils.CRDB_DSN)
+	err := migrations.CheckMigrations(utils.CRDB_DSN)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error checking migrations")
 		os.Exit(1)
