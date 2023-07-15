@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -287,4 +289,29 @@ func VersionToInt(v string) (int64, error) {
 		iParts[i] = vp
 	}
 	return iParts[0]*10_000*10_000 + iParts[1]*10_000 + iParts[2], nil
+}
+
+// FuncNameFQ returns the fully qualified name of the function.
+func FuncNameFQ(f any) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+}
+
+// FuncName returns the name of the function, without the package.
+func FuncName(f any) string {
+	fqName := FuncNameFQ(f)
+	return fqName[strings.LastIndexByte(fqName, '.')+1:]
+}
+
+func AsErr[T error](err error) (te T, ok bool) {
+	if err == nil {
+		return te, false
+	}
+	return te, errors.As(err, &te)
+}
+
+// IsErr is useful for check for a class of errors (e.g. *serviceerror.WorkflowExecutionAlreadyStarted) instead of a specific error.
+// E.g. Temporal doesn't even expose some errors, only their types
+func IsErr[T error](err error) bool {
+	_, ok := AsErr[T](err)
+	return ok
 }

@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/danthegoodman1/GoAPITemplate/observability"
+	"github.com/danthegoodman1/GoAPITemplate/temporal"
 	"github.com/joho/godotenv"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,6 +40,19 @@ func main() {
 	err := migrations.CheckMigrations(utils.CRDB_DSN)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error checking migrations")
+		os.Exit(1)
+	}
+
+	prometheusReporter := observability.NewPrometheusReporter()
+	err = observability.StartInternalHTTPServer(":8042", prometheusReporter)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error().Err(err).Msg("internal server couldn't start")
+		os.Exit(1)
+	}
+
+	err = temporal.Run(context.Background(), prometheusReporter)
+	if err != nil {
+		logger.Error().Err(err).Msg("Temporal init error")
 		os.Exit(1)
 	}
 
