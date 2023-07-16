@@ -40,18 +40,37 @@ func execActivity[Tin any](ctx workflow.Context, activity func(ctx context.Conte
 	return nil
 }
 
-func continueAsNew[Tin any](ctx workflow.Context, wfFunc func(ctx workflow.Context, input Tin) error, input Tin) error {
-	return workflow.NewContinueAsNewError(ctx, wfFunc, input)
+func execLocalActivityIO[Tin any, Tout any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (res Tout, err error), input Tin, scheduleToClose time.Duration) (Tout, error) {
+	if scheduleToClose != 0 {
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: scheduleToClose,
+		})
+	}
+	f := workflow.ExecuteLocalActivity(ctx, activity, input)
+	var res Tout
+	err := f.Get(ctx, &res)
+	if err != nil {
+		return res, fmt.Errorf("error in activity '%s': %w", utils.FuncName(activity), err)
+	}
+	return res, nil
 }
 
-func getEventWFUserID(ctx workflow.Context) (string, error) {
-	wfInfo := workflow.GetInfo(ctx)
-	parts := strings.SplitN(wfInfo.WorkflowExecution.ID, "__", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("workflow execution ID %s did not have proper split to find userID, got parts %+v: %w", wfInfo.WorkflowExecution.ID, parts, ErrInvalidWorkflowID)
+func execLocalActivity[Tin any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (err error), input Tin, scheduleToClose time.Duration) error {
+	if scheduleToClose != 0 {
+		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+			ScheduleToCloseTimeout: scheduleToClose,
+		})
 	}
-	userID := parts[1]
-	return userID, nil
+	f := workflow.ExecuteLocalActivity(ctx, activity, input)
+	err := f.Get(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error in activity '%s': %w", utils.FuncName(activity), err)
+	}
+	return nil
+}
+
+func continueAsNew[Tin any](ctx workflow.Context, wfFunc func(ctx workflow.Context, input Tin) error, input Tin) error {
+	return workflow.NewContinueAsNewError(ctx, wfFunc, input)
 }
 
 func IsWorkflowAlreadyFinishedError(err error) bool {
