@@ -11,10 +11,11 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func execActivityIO[Tin any, Tout any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (res Tout, err error), input Tin, scheduleToClose time.Duration) (Tout, error) {
+func execActivityIO[Tin any, Tout any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (res Tout, err error), input Tin, scheduleToClose, startToClose time.Duration) (Tout, error) {
 	if scheduleToClose != 0 {
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 			ScheduleToCloseTimeout: scheduleToClose,
+			StartToCloseTimeout:    startToClose,
 		})
 	}
 	f := workflow.ExecuteActivity(ctx, activity, input)
@@ -26,10 +27,11 @@ func execActivityIO[Tin any, Tout any](ctx workflow.Context, activity func(ctx c
 	return res, nil
 }
 
-func execActivity[Tin any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (err error), input Tin, scheduleToClose time.Duration) error {
+func execActivity[Tin any](ctx workflow.Context, activity func(ctx context.Context, params Tin) (err error), input Tin, scheduleToClose, startToClose time.Duration) error {
 	if scheduleToClose != 0 {
 		ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 			ScheduleToCloseTimeout: scheduleToClose,
+			StartToCloseTimeout:    startToClose,
 		})
 	}
 	f := workflow.ExecuteActivity(ctx, activity, input)
