@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/danthegoodman1/GoAPITemplate/observability"
-	"github.com/danthegoodman1/GoAPITemplate/temporal"
 	"github.com/joho/godotenv"
 	"net/http"
 	"os"
@@ -47,12 +46,6 @@ func main() {
 	err = observability.StartInternalHTTPServer(":8042", prometheusReporter)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error().Err(err).Msg("internal server couldn't start")
-		os.Exit(1)
-	}
-
-	err = temporal.Run(context.Background(), prometheusReporter)
-	if err != nil {
-		logger.Error().Err(err).Msg("Temporal init error")
 		os.Exit(1)
 	}
 
