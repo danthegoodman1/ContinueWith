@@ -6,7 +6,7 @@ import (
 
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
 	"github.com/danthegoodman1/GoAPITemplate/utils"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
@@ -30,7 +30,7 @@ func ConnectToDB() error {
 	config.MaxConnLifetime = time.Minute * 30
 	config.MaxConnIdleTime = time.Minute * 30
 
-	PGPool, err = pgxpool.ConnectConfig(context.Background(), config)
+	PGPool, err = pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return err
 	}

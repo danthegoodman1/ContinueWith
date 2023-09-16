@@ -16,7 +16,7 @@ import (
 
 	"github.com/jackc/pgtype"
 
-	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgx"
+	"github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
 	"github.com/labstack/echo/v4"
 	gonanoid "github.com/matoous/go-nanoid/v2"
@@ -24,9 +24,9 @@ import (
 	"github.com/segmentio/ksuid"
 
 	"github.com/UltimateTournament/backoff/v4"
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var logger = gologger.NewLogger()

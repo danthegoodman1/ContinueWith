@@ -7,7 +7,7 @@ import (
 
 	// ensure "pgx" driver is loaded
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	migrate "github.com/rubenv/sql-migrate"
 )
 

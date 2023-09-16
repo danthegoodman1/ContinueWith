@@ -12,7 +12,7 @@ import (
 	"go.temporal.io/api/workflowservice/v1"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/uber-go/tally/v4/prometheus"

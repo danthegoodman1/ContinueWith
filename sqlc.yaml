@@ -5,4 +5,4 @@ packages:
     engine: "postgresql"
     schema: "schema.sql"
     queries: "./queries/"
-    sql_package: "pgx/v4"
+    sql_package: "pgx/v5"
