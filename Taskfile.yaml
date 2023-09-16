@@ -3,8 +3,8 @@ version: '3'
 dotenv: ['.env']
 
 vars:
-  sql_migrate_version: v1.2.0
-  sql_c_version: v1.16.0
+  sql_migrate_version: v1.5.2
+  sql_c_version: v1.19.1
 
 env:
   DOCKER_BUILDKIT: "1"

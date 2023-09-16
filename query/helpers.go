@@ -3,8 +3,8 @@ package query
 import (
 	"context"
 	"github.com/danthegoodman1/GoAPITemplate/utils"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"strings"
