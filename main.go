@@ -36,7 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := migrations.CheckMigrations(utils.PG_DSN)
+	err := migrations.CheckMigrations(utils.PGDSN)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error checking migrations")
 		os.Exit(1)

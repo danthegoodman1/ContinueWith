@@ -34,8 +34,8 @@ func (t *tracingDBTX) QueryRow(ctx context.Context, s string, i ...interface{}) 
 	return t.db.QueryRow(ctx, s, i...)
 }
 
-func (t *tracingDBTX) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error) {
-	ctx, span := createSpan(ctx, "copyFrom:"+tableName.Sanitize())
-	defer span.End()
-	return t.db.CopyFrom(ctx, tableName, columnNames, rowSrc)
-}
+// func (t *tracingDBTX) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error) {
+// 	ctx, span := createSpan(ctx, "copyFrom:"+tableName.Sanitize())
+// 	defer span.End()
+// 	return t.db.CopyFrom(ctx, tableName, columnNames, rowSrc)
+// }

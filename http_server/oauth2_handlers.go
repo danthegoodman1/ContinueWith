@@ -30,6 +30,9 @@ var (
 
 	GrantTypeAuthorizationCode = "authorization_code"
 	GrantTypeRefreshToken      = "refresh_token"
+
+	BearerTokenType = "bearer"
+	MacTokenType    = "mac"
 )
 
 type (
@@ -43,11 +46,17 @@ type (
 )
 
 // The consent screen has provided a result
-func (srv *HTTPServer) GetAuthorize(c *CustomContext) error {
+func (s *HTTPServer) GetAuthorize(c *CustomContext) error {
+	logger := zerolog.Ctx(c.Request().Context())
 	var reqBody AuthorizeRequest
 	if err := ValidateRequest(c, &reqBody); err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
+
+	// Update our logger to have the context
+	logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+		return c.Str("ClientID", reqBody.ClientID).Str("ResponseType", reqBody.ResponseType).Str("RedirectURI", reqBody.RedirectURI).Str("Scope", reqBody.Scope)
+	})
 
 	// Validate response type
 	if reqBody.ResponseType != ResponseTypeAuthorizationCode && reqBody.ResponseType != ResponseTypeClientCredentials {
@@ -57,15 +66,15 @@ func (srv *HTTPServer) GetAuthorize(c *CustomContext) error {
 	// Handle flow for response type
 	switch reqBody.ResponseType {
 	case ResponseTypeAuthorizationCode:
-		return srv.handleGetAuthorizationCode(c, reqBody)
+		return s.handleGetAuthorizationCode(c, reqBody)
 	case ResponseTypeClientCredentials:
-		return srv.handleGetClientCredentials(c, reqBody)
+		return s.handleGetClientCredentials(c, reqBody)
 	default:
 		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnsupportedResponseType, nil, nil, reqBody.State)
 	}
 }
 
-func (srv *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody AuthorizeRequest) error {
+func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody AuthorizeRequest) error {
 	ctx := c.Request().Context()
 	logger := zerolog.Ctx(ctx)
 
@@ -123,20 +132,25 @@ func (srv *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody Auth
 	}
 
 	// Insert the authorization code that can be exchanged for a token pair
-	authCode := utils.GenRandomShortID()
+	authCode := utils.GenRandomIDWithSize("ac_", 10)
 	err = query.ReliableExec(ctx, pg.Pool, time.Second*10, func(ctx context.Context, q *query.Queries) error {
 		return q.InsertAuthorizationCode(ctx, query.InsertAuthorizationCodeParams{
-			ID:      authCode,
-			UserID:  userInfo.UserID,
-			Scopes:  nil,
-			Expires: time.Now().Add(time.Minute * 10),
+			ID:       authCode,
+			UserID:   userInfo.UserID,
+			Scopes:   nil,
+			Expires:  time.Now().Add(time.Minute * 10),
+			ClientID: client.ID,
 		})
 	})
+	if err != nil {
+		logger.Error().Err(err).Msg("error in InsertAuthorizationCode")
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrServerError, utils.Ptr("internal server error"), nil, reqBody.State)
+	}
 
 	return c.ReturnAuthorizeRedirectURI(reqBody.RedirectURI, authCode, nil)
 }
 
-func (srv *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody AuthorizeRequest) error {
+func (s *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody AuthorizeRequest) error {
 	// TODO: implement
 	return c.NoContent(http.StatusNotImplemented)
 }
@@ -153,10 +167,18 @@ type (
 		RefreshToken *string `query:"refresh_token"`
 		Code         *string `query:"refresh_token"`
 	}
+
+	AccessTokenResponse struct {
+		AccessToken string `json:"access_token"`
+		// "bearer" or "mac"
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int    `json:"expires_in"`
+		RefreshToken string `json:"refresh_token,omitempty"`
+	}
 )
 
 // The client is exchanging an authorizaqtion code for an access token, or refreshing an access token
-func (srv *HTTPServer) PostAccessToken(c *CustomContext) error {
+func (s *HTTPServer) PostAccessToken(c *CustomContext) error {
 	var reqBody AccessTokenRequest
 	if err := ValidateRequest(c, &reqBody); err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
@@ -164,22 +186,149 @@ func (srv *HTTPServer) PostAccessToken(c *CustomContext) error {
 
 	switch reqBody.GrantType {
 	case GrantTypeAuthorizationCode:
-		return srv.handleAuthorizationCodeRequest(c, reqBody)
+		if reqBody.Code == nil {
+			return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrInvalidRequest, utils.Ptr("missing code"), nil, nil)
+		}
+		return s.handleAuthorizationCodeRequest(c, reqBody)
 	case GrantTypeRefreshToken:
-		return srv.handleRefreshTokenRequest(c, reqBody)
+		if reqBody.RefreshToken == nil {
+			return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrInvalidRequest, utils.Ptr("missing refresh token"), nil, nil)
+		}
+		return s.handleRefreshTokenRequest(c, reqBody)
 	default:
 		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrInvalidRequest, utils.Ptr("invalid grant_type"), nil, nil)
 	}
 }
 
-func (src *HTTPServer) handleAuthorizationCodeRequest(c *CustomContext, request AccessTokenRequest) error {
-	// TODO: Lookup code
-	// TODO: Generate token pair
-	// TODO: Return tokens
+func (s *HTTPServer) handleAuthorizationCodeRequest(c *CustomContext, request AccessTokenRequest) error {
+	ctx := c.Request().Context()
+	logger := zerolog.Ctx(ctx)
+
+	// Generate token pair
+	refreshTokenID := utils.GenRandomIDWithSize("r_", 16)
+	accessTokenID := utils.GenRandomIDWithSize("a_", 16)
+	err := query.ReliableExecInTx(ctx, pg.Pool, time.Second*20, func(ctx context.Context, q *query.Queries) error {
+		if utils.IsPostgres {
+			err := q.SetIsolationLevel(ctx, query.Serializable)
+			if err != nil {
+				return fmt.Errorf("error in SetIsolationLevel: %w", err)
+			}
+		}
+		code, err := q.DeleteAuthorizationCode(ctx, *request.Code)
+		if err != nil {
+			return fmt.Errorf("error in SelectAuthorizationCode: %w", err)
+		}
+
+		// Insert the tokens
+		err = q.InsertRefreshToken(ctx, query.InsertRefreshTokenParams{
+			ID:       refreshTokenID,
+			ClientID: code.ClientID,
+			UserID:   code.UserID,
+			Scopes:   code.Scopes,
+			Expires:  time.Now().Add(time.Second * time.Duration(utils.RefreshTokenExpireSeconds)),
+		})
+		if err != nil {
+			return fmt.Errorf("error in InsertRefreshToken: %w", err)
+		}
+		err = q.InsertAccessToken(ctx, query.InsertAccessTokenParams{
+			ID:           accessTokenID,
+			ClientID:     code.ClientID,
+			UserID:       code.UserID,
+			Scopes:       code.Scopes,
+			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
+			RefreshToken: refreshTokenID,
+		})
+		if err != nil {
+			return fmt.Errorf("error in InsertAccessToken: %w", err)
+		}
+
+		return nil
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.ReturnErrorResponse(request.RedirectURI, AuthErrInvalidRequest, utils.Ptr("code not found"), nil, nil)
+	}
+	if err != nil {
+		logger.Error().Err(err).Msg("error exchanging auth code for tokens in DB")
+		return c.ReturnErrorResponse(request.RedirectURI, AuthErrInvalidRequest, utils.Ptr("internal server error"), nil, nil)
+	}
+
+	return c.JSON(http.StatusOK, AccessTokenResponse{
+		AccessToken:  accessTokenID,
+		TokenType:    BearerTokenType,
+		ExpiresIn:    int(utils.AccessTokenExpireSeconds),
+		RefreshToken: refreshTokenID,
+	})
 }
 
-func (src *HTTPServer) handleRefreshTokenRequest(c *CustomContext, request AccessTokenRequest) error {
-	// TODO: Lookup code
-	// TODO: Generate token pair (refreshing refresh if expired)
-	// TODO: Return tokens
+func (s *HTTPServer) handleRefreshTokenRequest(c *CustomContext, request AccessTokenRequest) error {
+	ctx := c.Request().Context()
+	logger := zerolog.Ctx(ctx)
+	start := time.Now()
+
+	// Lookup token
+	newRefreshToken := ""
+	newAccessToken := utils.GenRandomIDWithSize("a_", 16)
+	err := query.ReliableExecInTx(ctx, pg.Pool, time.Second*20, func(ctx context.Context, q *query.Queries) error {
+		if utils.IsPostgres {
+			err := q.SetIsolationLevel(ctx, query.Serializable)
+			if err != nil {
+				return fmt.Errorf("error in SetIsolationLevel: %w", err)
+			}
+		}
+
+		refreshToken, err := q.SelectValidRefreshToken(ctx, *request.RefreshToken)
+		if err != nil {
+			return fmt.Errorf("error in SelectValidRefreshToken: %w", err)
+		}
+
+		expired := start.After(refreshToken.Expires)
+		if expired {
+			// If expired, we need to make a new one
+			newRefreshToken = utils.GenRandomIDWithSize("r_", 16)
+			err = q.RevokeRefreshToken(ctx, refreshToken.ID)
+			if err != nil {
+				return fmt.Errorf("error in RevokeRefreshToken: %w", err)
+			}
+
+			err = q.InsertRefreshToken(ctx, query.InsertRefreshTokenParams{
+				ID:       newRefreshToken,
+				ClientID: refreshToken.ClientID,
+				UserID:   refreshToken.UserID,
+				Scopes:   refreshToken.Scopes,
+				Expires:  time.Now().Add(time.Second * time.Duration(utils.RefreshTokenExpireSeconds)),
+			})
+			if err != nil {
+				return fmt.Errorf("error in InsertRefreshToken: %w", err)
+			}
+		}
+
+		// Insert the new access token
+		err = q.InsertAccessToken(ctx, query.InsertAccessTokenParams{
+			ID:           newAccessToken,
+			ClientID:     refreshToken.ClientID,
+			UserID:       refreshToken.UserID,
+			Scopes:       refreshToken.Scopes,
+			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
+			RefreshToken: lo.Ternary(expired, newRefreshToken, refreshToken.ID),
+		})
+		if err != nil {
+			return fmt.Errorf("error in InsertAccessToken: %w", err)
+		}
+
+		return nil
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.ReturnErrorResponse(request.RedirectURI, AuthErrInvalidRequest, utils.Ptr("refresh token not found"), nil, nil)
+	}
+	if err != nil {
+		logger.Error().Err(err).Msg("error exchanging auth code for tokens in DB")
+		return c.ReturnErrorResponse(request.RedirectURI, AuthErrInvalidRequest, utils.Ptr("internal server error"), nil, nil)
+	}
+
+	return c.JSON(http.StatusOK, AccessTokenResponse{
+		AccessToken:  newAccessToken,
+		TokenType:    BearerTokenType,
+		ExpiresIn:    int(utils.AccessTokenExpireSeconds),
+		RefreshToken: newRefreshToken, // omitempty, will only be included if old expired
+	})
 }

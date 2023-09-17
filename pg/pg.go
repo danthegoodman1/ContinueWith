@@ -19,7 +19,7 @@ var (
 func ConnectToDB() error {
 	logger.Debug().Msg("connecting to PG...")
 	var err error
-	config, err := pgxpool.ParseConfig(utils.PG_DSN)
+	config, err := pgxpool.ParseConfig(utils.PGDSN)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"fmt"
 	"github.com/danthegoodman1/GoAPITemplate/utils"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,4 +39,26 @@ func ReliableExecInTx(ctx context.Context, pool *pgxpool.Pool, tryTimeout time.D
 	return utils.ReliableExecInTx(ctx, pool, tryTimeout, func(ctx context.Context, conn pgx.Tx) error {
 		return f(ctx, NewWithTracing(conn))
 	})
+}
+
+type (
+	IsolationLevel string
+)
+
+const (
+	ReadCommitted IsolationLevel = "READ COMMITTED"
+	Serializable  IsolationLevel = "SERIALIZABLE"
+)
+
+var (
+	// protects from potential SQL injection
+	isolationlevels = map[IsolationLevel]string{
+		ReadCommitted: string(ReadCommitted),
+		Serializable:  string(Serializable),
+	}
+)
+
+func (q *Queries) SetIsolationLevel(ctx context.Context, level IsolationLevel) error {
+	_, err := q.db.Exec(ctx, fmt.Sprintf("set transaction isolation level %s", isolationlevels[level]))
+	return err
 }

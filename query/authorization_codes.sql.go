@@ -10,10 +10,32 @@ import (
 	"time"
 )
 
+const deleteAuthorizationCode = `-- name: DeleteAuthorizationCode :one
+delete from authorization_codes
+where id = $1
+returning id, client_id, user_id, scopes, expires, created, updated
+`
+
+func (q *Queries) DeleteAuthorizationCode(ctx context.Context, id string) (AuthorizationCode, error) {
+	row := q.db.QueryRow(ctx, deleteAuthorizationCode, id)
+	var i AuthorizationCode
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.UserID,
+		&i.Scopes,
+		&i.Expires,
+		&i.Created,
+		&i.Updated,
+	)
+	return i, err
+}
+
 const insertAuthorizationCode = `-- name: InsertAuthorizationCode :exec
 insert into authorization_codes (
     id
     , user_id
+    , client_id
     , scopes
     , expires
 ) values (
@@ -21,20 +43,23 @@ insert into authorization_codes (
      , $2
      , $3
      , $4
+     , $5
  )
 `
 
 type InsertAuthorizationCodeParams struct {
-	ID      string
-	UserID  string
-	Scopes  []string
-	Expires time.Time
+	ID       string
+	UserID   string
+	ClientID string
+	Scopes   []string
+	Expires  time.Time
 }
 
 func (q *Queries) InsertAuthorizationCode(ctx context.Context, arg InsertAuthorizationCodeParams) error {
 	_, err := q.db.Exec(ctx, insertAuthorizationCode,
 		arg.ID,
 		arg.UserID,
+		arg.ClientID,
 		arg.Scopes,
 		arg.Expires,
 	)
@@ -42,7 +67,7 @@ func (q *Queries) InsertAuthorizationCode(ctx context.Context, arg InsertAuthori
 }
 
 const selectAuthorizationCode = `-- name: SelectAuthorizationCode :one
-select id, user_id, scopes, expires, created_at, updated_at
+select id, client_id, user_id, scopes, expires, created, updated
 from authorization_codes
 where id = $1
 `
@@ -52,11 +77,12 @@ func (q *Queries) SelectAuthorizationCode(ctx context.Context, id string) (Autho
 	var i AuthorizationCode
 	err := row.Scan(
 		&i.ID,
+		&i.ClientID,
 		&i.UserID,
 		&i.Scopes,
 		&i.Expires,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.Created,
+		&i.Updated,
 	)
 	return i, err
 }

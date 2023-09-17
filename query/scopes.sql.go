@@ -10,7 +10,7 @@ import (
 )
 
 const listScopes = `-- name: ListScopes :many
-select id, description, created_at, updated_at
+select id, description, created, updated
 from scopes
 `
 
@@ -26,8 +26,8 @@ func (q *Queries) ListScopes(ctx context.Context) ([]Scope, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Description,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Created,
+			&i.Updated,
 		); err != nil {
 			return nil, err
 		}

@@ -9,25 +9,49 @@ import (
 	"time"
 )
 
+type AccessToken struct {
+	ID           string
+	ClientID     string
+	RefreshToken string
+	UserID       string
+	Scopes       []string
+	Expires      time.Time
+	Revoked      bool
+	Created      time.Time
+	Updated      time.Time
+}
+
 type AuthorizationCode struct {
-	ID        string
-	UserID    string
-	Scopes    []string
-	Expires   time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID       string
+	ClientID string
+	UserID   string
+	Scopes   []string
+	Expires  time.Time
+	Created  time.Time
+	Updated  time.Time
 }
 
 type Client struct {
 	ID        string
 	Suspended bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Created   time.Time
+	Updated   time.Time
+}
+
+type RefreshToken struct {
+	ID       string
+	ClientID string
+	UserID   string
+	Scopes   []string
+	Expires  time.Time
+	Revoked  bool
+	Created  time.Time
+	Updated  time.Time
 }
 
 type Scope struct {
 	ID          string
 	Description sql.NullString
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Created     time.Time
+	Updated     time.Time
 }
