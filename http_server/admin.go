@@ -17,7 +17,7 @@ type VerifyAccessTokenResponse struct {
 	Scopes           []string
 }
 
-func (s *HTTPServer) VerifyAccessToken(c *CustomContext) error {
+func (s *HTTPServer) CheckAccessToken(c *CustomContext) error {
 	ctx := c.Request().Context()
 	accessTokenID := c.Param("accessToken")
 

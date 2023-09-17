@@ -56,7 +56,7 @@ func StartHTTPServer() *HTTPServer {
 
 	// admin endpoints
 	adminGroup := s.Echo.Group("/admin", AdminMiddleware)
-	adminGroup.GET("/access_token/:accessToken", ccHandler(s.VerifyAccessToken))
+	adminGroup.GET("/access_token/:accessToken", ccHandler(s.CheckAccessToken))
 
 	s.Echo.Listener = listener
 	go func() {

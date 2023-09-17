@@ -30,4 +30,4 @@ The user api is the endpoint that clients use to handle the oauth2 flow with you
 
 ## Admin API
 
-The admin api allows you to manage clients, scopes, and more.
+The admin api allows you to check access tokens, manage clients, scopes, and more.
