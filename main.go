@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/danthegoodman1/GoAPITemplate/crdb"
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
 	"github.com/danthegoodman1/GoAPITemplate/http_server"
 	"github.com/danthegoodman1/GoAPITemplate/migrations"
+	"github.com/danthegoodman1/GoAPITemplate/pg"
 	"github.com/danthegoodman1/GoAPITemplate/utils"
 )
 
@@ -31,12 +31,12 @@ func main() {
 	}
 	logger.Debug().Msg("starting Tangia mono api")
 
-	if err := crdb.ConnectToDB(); err != nil {
+	if err := pg.ConnectToDB(); err != nil {
 		logger.Error().Err(err).Msg("error connecting to CRDB")
 		os.Exit(1)
 	}
 
-	err := migrations.CheckMigrations(utils.CRDB_DSN)
+	err := migrations.CheckMigrations(utils.PG_DSN)
 	if err != nil {
 		logger.Error().Err(err).Msg("Error checking migrations")
 		os.Exit(1)

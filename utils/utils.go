@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"reflect"
@@ -40,6 +41,16 @@ func GetEnvOrDefault(env, defaultVal string) string {
 	}
 }
 
+func MustEnv(env string) string {
+	e := os.Getenv(env)
+	if e == "" {
+		log.Fatalf("missing required env '%s'", env)
+		return ""
+	} else {
+		return e
+	}
+}
+
 func GetEnvOrDefaultInt(env string, defaultVal int64) int64 {
 	e := os.Getenv(env)
 	if e == "" {
@@ -57,6 +68,10 @@ func GetEnvOrDefaultInt(env string, defaultVal int64) int64 {
 
 func GenRandomID(prefix string) string {
 	return prefix + gonanoid.MustGenerate("abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMONPQRSTUVWXYZ0123456789", 22)
+}
+
+func GenRandomIDWithSize(prefix string, size int) string {
+	return prefix + gonanoid.MustGenerate("abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMONPQRSTUVWXYZ0123456789", size)
 }
 
 func GenKSortedID(prefix string) string {

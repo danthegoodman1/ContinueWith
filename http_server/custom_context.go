@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
 	"github.com/google/uuid"
@@ -54,4 +55,39 @@ func (c *CustomContext) InternalError(err error, msg string) error {
 		zerolog.Ctx(c.Request().Context()).Error().CallerSkipFrame(1).Err(err).Msg(msg)
 	}
 	return c.String(http.StatusInternalServerError, c.internalErrorMessage())
+}
+
+func (c *CustomContext) ReturnAuthorizeRedirectURI(baseURI, code string, state *string) error {
+	u, err := url.Parse(baseURI)
+	if err != nil {
+		return c.InternalError(err, "error in url.Parse")
+	}
+	q := u.Query()
+	q.Set("code", code)
+	if state != nil {
+		q.Set("state", *state)
+	}
+	u.RawQuery = q.Encode()
+	return c.Redirect(http.StatusFound, u.String())
+}
+
+func (c *CustomContext) ReturnErrorResponse(baseURI, errType string, errDescription, errURI, state *string) error {
+	u, err := url.Parse(baseURI)
+	if err != nil {
+		return c.InternalError(err, "error in url.Parse")
+	}
+	q := u.Query()
+	q.Set("error", errType)
+	if errDescription != nil {
+		q.Set("error_description", *errDescription)
+	}
+	if errURI != nil {
+		q.Set("err_uri", *errURI)
+	}
+	if state != nil {
+		q.Set("state", *state)
+	}
+
+	u.RawQuery = q.Encode()
+	return c.Redirect(http.StatusNotFound, u.String())
 }

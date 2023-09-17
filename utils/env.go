@@ -5,5 +5,8 @@ import "os"
 var (
 	Env = os.Getenv("ENV")
 
-	CRDB_DSN = os.Getenv("CRDB_DSN")
+	PGDSN = os.Getenv("PG_DSN")
+
+	ProviderAPIUserExchange = MustEnv("PROVIDER_USER_EXCHANGE_URL")
+	ProviderAuthHeader      = MustEnv("PROVIDER_AUTH_HEADER")
 )

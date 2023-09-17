@@ -1,4 +1,4 @@
-package crdb
+package pg
 
 import (
 	"context"
@@ -10,16 +10,16 @@ import (
 )
 
 var (
-	PGPool                 *pgxpool.Pool
+	Pool                   *pgxpool.Pool
 	StandardContextTimeout = 10 * time.Second
 
 	logger = gologger.NewLogger()
 )
 
 func ConnectToDB() error {
-	logger.Debug().Msg("connecting to CRDB...")
+	logger.Debug().Msg("connecting to PG...")
 	var err error
-	config, err := pgxpool.ParseConfig(utils.CRDB_DSN)
+	config, err := pgxpool.ParseConfig(utils.PG_DSN)
 	if err != nil {
 		return err
 	}
@@ -30,10 +30,10 @@ func ConnectToDB() error {
 	config.MaxConnLifetime = time.Minute * 30
 	config.MaxConnIdleTime = time.Minute * 30
 
-	PGPool, err = pgxpool.NewWithConfig(context.Background(), config)
+	Pool, err = pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return err
 	}
-	logger.Debug().Msg("connected to CRDB")
+	logger.Debug().Msg("connected to PG")
 	return nil
 }

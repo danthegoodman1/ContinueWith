@@ -1,10 +1,19 @@
 package http_server
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"github.com/danthegoodman1/GoAPITemplate/pg"
+	"github.com/danthegoodman1/GoAPITemplate/provider_api"
+	"github.com/danthegoodman1/GoAPITemplate/query"
 	"github.com/danthegoodman1/GoAPITemplate/utils"
+	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"net/http"
-	"net/url"
+	"strings"
+	"time"
 )
 
 var (
@@ -33,41 +42,6 @@ type (
 	}
 )
 
-func generateAuthorizeRedirectURI(baseURI, code string, state *string) (string, error) {
-	u, err := url.Parse(baseURI)
-	if err != nil {
-		return "", fmt.Errorf("error in url.Parse: %w", err)
-	}
-	q := u.Query()
-	q.Set("code", code)
-	if state != nil {
-		q.Set("state", *state)
-	}
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
-func generateErrorResponse(baseURI, errType string, errDescription, errURI, state *string) (string, error) {
-	u, err := url.Parse(baseURI)
-	if err != nil {
-		return "", fmt.Errorf("error in url.Parse: %w", err)
-	}
-	q := u.Query()
-	q.Set("error", errType)
-	if errDescription != nil {
-		q.Set("error_description", *errDescription)
-	}
-	if errURI != nil {
-		q.Set("err_uri", *errURI)
-	}
-	if state != nil {
-		q.Set("state", *state)
-	}
-
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
 // The consent screen has provided a result
 func (srv *HTTPServer) GetAuthorize(c *CustomContext) error {
 	var reqBody AuthorizeRequest
@@ -75,19 +49,96 @@ func (srv *HTTPServer) GetAuthorize(c *CustomContext) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 
-	// TODO: Validate response type, lookup client, validate scopes
-
-	// TODO: Forward auth header to provider API and get user info back
-
-	// TODO: Handle the flow for the response type
-	var redirectURI string
-	var err error
-	redirectURI, err = generateAuthorizeRedirectURI("", "", nil)
-	if err != nil {
-		c.InternalError(err, "error in GenerateRedirectURI")
+	// Validate response type
+	if reqBody.ResponseType != ResponseTypeAuthorizationCode && reqBody.ResponseType != ResponseTypeClientCredentials {
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnsupportedResponseType, nil, nil, reqBody.State)
 	}
 
-	return c.Redirect(http.StatusFound, redirectURI)
+	// Handle flow for response type
+	switch reqBody.ResponseType {
+	case ResponseTypeAuthorizationCode:
+		return srv.handleGetAuthorizationCode(c, reqBody)
+	case ResponseTypeClientCredentials:
+		return srv.handleGetClientCredentials(c, reqBody)
+	default:
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnsupportedResponseType, nil, nil, reqBody.State)
+	}
+}
+
+func (srv *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody AuthorizeRequest) error {
+	ctx := c.Request().Context()
+	logger := zerolog.Ctx(ctx)
+
+	// Lookup client and get scopes
+	var client query.Client
+	var scopes []query.Scope
+	err := query.ReliableExec(ctx, pg.Pool, time.Second*10, func(ctx context.Context, q *query.Queries) (err error) {
+		client, err = q.SelectClient(ctx, reqBody.ClientID)
+		if err != nil {
+			return fmt.Errorf("error in SelectClient: %w", err)
+		}
+		scopes, err = q.ListScopes(ctx)
+		if err != nil {
+			return fmt.Errorf("error in ListScopes: %w", err)
+		}
+		return
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnauthorizedClient, utils.Ptr("unknown client_id"), nil, reqBody.State)
+	}
+	if err != nil {
+		return c.InternalError(err, "")
+	}
+
+	// Verify client not suspended
+	if client.Suspended {
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrAccessDenied, utils.Ptr("client suspended"), nil, reqBody.State)
+	}
+
+	// Validate scopes
+	requestedScopes := strings.Split(reqBody.Scope, " ")
+	scopeIDs := lo.Map(scopes, func(item query.Scope, index int) string {
+		return item.ID
+	})
+
+	_, unknownScopes := lo.Difference(scopeIDs, requestedScopes)
+	if len(unknownScopes) > 0 {
+		// The client provided scopes that we don't know about
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrInvalidScope, utils.Ptr(fmt.Sprintf("invalid scopes: %+v", unknownScopes)), nil, reqBody.State)
+	}
+
+	// Forward auth header to provider API and get user info back
+	userInfo, err := provider_api.ExchangeAuthForUserInfo(ctx, utils.ProviderAPIUserExchange, utils.ProviderAuthHeader, c.Request().Header.Get(utils.ProviderAuthHeader))
+	if err != nil {
+		var errType, errDesc string
+		if isClientError := errors.Is(err, provider_api.ErrClientError); isClientError {
+			errType = AuthErrInvalidRequest
+			errDesc = err.Error()
+		} else {
+			errType = AuthErrServerError
+			errDesc = err.Error()
+			logger.Error().Err(err).Msg("server error exchanging auth for user info")
+		}
+		return c.ReturnErrorResponse(reqBody.RedirectURI, errType, utils.Ptr(errDesc), nil, reqBody.State)
+	}
+
+	// Insert the authorization code that can be exchanged for a token pair
+	authCode := utils.GenRandomShortID()
+	err = query.ReliableExec(ctx, pg.Pool, time.Second*10, func(ctx context.Context, q *query.Queries) error {
+		return q.InsertAuthorizationCode(ctx, query.InsertAuthorizationCodeParams{
+			ID:      authCode,
+			UserID:  userInfo.UserID,
+			Scopes:  nil,
+			Expires: time.Now().Add(time.Minute * 10),
+		})
+	})
+
+	return c.ReturnAuthorizeRedirectURI(reqBody.RedirectURI, authCode, nil)
+}
+
+func (srv *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody AuthorizeRequest) error {
+	// TODO: implement
+	return c.NoContent(http.StatusNotImplemented)
 }
 
 type (
@@ -117,11 +168,7 @@ func (srv *HTTPServer) PostAccessToken(c *CustomContext) error {
 	case GrantTypeRefreshToken:
 		return srv.handleRefreshTokenRequest(c, reqBody)
 	default:
-		redirectURI, err := generateErrorResponse(reqBody.RedirectURI, AuthErrInvalidRequest, utils.Ptr("invalid grant_type"), nil, nil)
-		if err != nil {
-			c.InternalError(err, "error in generateErrorResponse")
-		}
-		return c.Redirect(http.StatusFound, redirectURI)
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrInvalidRequest, utils.Ptr("invalid grant_type"), nil, nil)
 	}
 }
 

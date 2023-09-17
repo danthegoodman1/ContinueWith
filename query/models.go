@@ -4,4 +4,30 @@
 
 package query
 
-import ()
+import (
+	"database/sql"
+	"time"
+)
+
+type AuthorizationCode struct {
+	ID        string
+	UserID    string
+	Scopes    []string
+	Expires   time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Client struct {
+	ID        string
+	Suspended bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Scope struct {
+	ID          string
+	Description sql.NullString
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
