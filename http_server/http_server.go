@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/danthegoodman1/GoAPITemplate/gologger"
@@ -52,6 +53,10 @@ func StartHTTPServer() *HTTPServer {
 	// oauth flow
 	oauthGroup := s.Echo.Group("/oauth")
 	oauthGroup.GET("/authorize", ccHandler(s.GetAuthorize))
+
+	// admin endpoints
+	adminGroup := s.Echo.Group("/admin", AdminMiddleware)
+	adminGroup.GET("/access_token/:accessToken", ccHandler(s.VerifyAccessToken))
 
 	s.Echo.Listener = listener
 	go func() {
@@ -117,5 +122,16 @@ func LoggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		logger.Debug().Str("method", req.Method).Str("remote_ip", c.RealIP()).Str("req_uri", req.RequestURI).Str("handler_path", c.Path()).Str("path", p).Int("status", res.Status).Int64("latency_ns", int64(stop)).Str("protocol", req.Proto).Str("bytes_in", cl).Int64("bytes_out", res.Size).Msg("req recived")
 		return nil
+	}
+}
+
+func AdminMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		parts := strings.Split(c.Request().Header.Get("Authorization"), "earer ")
+		if len(parts) != 2 || parts[1] != utils.AdminKey {
+			return c.String(http.StatusBadRequest, "invalid auth header")
+		}
+
+		return next(c)
 	}
 }

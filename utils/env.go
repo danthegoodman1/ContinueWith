@@ -17,4 +17,6 @@ var (
 	RefreshTokenExpireSeconds = GetEnvOrDefaultInt("REFRESH_TOKEN_EXPIRE_SECONDS", 12*3600)
 	// Default 1 hour
 	AccessTokenExpireSeconds = GetEnvOrDefaultInt("ACCESS_TOKEN_EXPIRE_SECONDS", 3600)
+
+	AdminKey = MustEnv("ADMIN_KEY")
 )

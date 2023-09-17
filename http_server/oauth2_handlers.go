@@ -96,7 +96,7 @@ func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody Author
 		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnauthorizedClient, utils.Ptr("unknown client_id"), nil, reqBody.State)
 	}
 	if err != nil {
-		return c.InternalError(err, "")
+		return c.InternalError(err, "error getting client info")
 	}
 
 	// Verify client not suspended
