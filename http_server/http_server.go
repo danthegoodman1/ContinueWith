@@ -49,6 +49,10 @@ func StartHTTPServer() *HTTPServer {
 	// technical - no auth
 	s.Echo.GET("/hc", s.HealthCheck)
 
+	// oauth flow
+	oauthGroup := s.Echo.Group("/oauth")
+	oauthGroup.GET("/authorize", ccHandler(s.GetAuthorize))
+
 	s.Echo.Listener = listener
 	go func() {
 		logger.Info().Msg("starting h2c server on " + listener.Addr().String())
