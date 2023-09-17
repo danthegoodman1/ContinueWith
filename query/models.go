@@ -33,6 +33,7 @@ type AuthorizationCode struct {
 
 type Client struct {
 	ID        string
+	Secret    string
 	Suspended bool
 	Created   time.Time
 	Updated   time.Time

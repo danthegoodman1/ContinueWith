@@ -207,9 +207,9 @@ select id, client_id, user_id, scopes, expires, revoked, created, updated
 from refresh_tokens
 where id = $1
 and expires > now()
-and revoked = false
 `
 
+// Might be expired, if so need to regenerate and mark as revoked
 func (q *Queries) SelectValidRefreshToken(ctx context.Context, id string) (RefreshToken, error) {
 	row := q.db.QueryRow(ctx, selectValidRefreshToken, id)
 	var i RefreshToken

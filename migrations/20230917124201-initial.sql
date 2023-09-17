@@ -3,6 +3,7 @@
 
 create table clients (
     id text not null,
+    secret text not null,
     suspended bool not null default false,
 
     created timestamptz not null default now(),
