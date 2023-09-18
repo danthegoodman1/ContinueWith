@@ -13,18 +13,24 @@ For example, maybe you use Firebase, Supabase, or Clerk for manage your users an
 
 Notion does this: They allow their users to log in with social providers like Google, and also allow other platforms to log in their users with Notion and access things like pages and databases through the Notion API.
 
-What you need to do is:
+<!-- TOC -->
+* [ContinueWith](#continuewith)
+  * [All you need to do:](#all-you-need-to-do)
+  * [Examples](#examples)
+  * [User API](#user-api)
+  * [Admin API](#admin-api)
+<!-- TOC -->
+
+## All you need to do:
 
 1. Make a pretty OAuth consent screen that matches your awesome site (we have a stellar guide to help you crush it quickly)
 2. Make an API endpoint that we can forward your bearer token or session to when your users give consent, and you give us some user info
 3. Tell us what scopes are available
 4. Add any auth middleware you need to check the access token against ContinueWith and get back user info, scopes, etc.
 
-<!-- TOC -->
-* [ContinueWith](#continuewith)
-  * [User API](#user-api)
-  * [Admin API](#admin-api)
-<!-- TOC -->
+## Examples
+
+See the [example](example) provider and client to get a feel for what the behavior looks like, and how easy it is to implement as a provider.
 
 ## User API
 
