@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bytedance/sonic"
+	"github.com/danthegoodman1/GoAPITemplate/utils"
 	"github.com/samber/lo"
 	"io"
 	"net/http"
@@ -27,6 +28,7 @@ func ExchangeAuthForUserInfo(ctx context.Context, targetURL, authHeaderKey, auth
 	}
 
 	req.Header.Set(authHeaderKey, authHeaderVal)
+	req.Header.Set("x-continuewith-auth", utils.AdminKey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

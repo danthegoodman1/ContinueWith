@@ -12,9 +12,9 @@ import (
 )
 
 type VerifyAccessTokenResponse struct {
-	UserID           string
-	Created, Expires time.Time
-	Scopes           []string
+	UserID               string
+	CreatedMS, ExpiresMS int64
+	Scopes               []string
 }
 
 func (s *HTTPServer) CheckAccessToken(c *CustomContext) error {
@@ -37,9 +37,9 @@ func (s *HTTPServer) CheckAccessToken(c *CustomContext) error {
 	}
 
 	return c.JSON(http.StatusOK, VerifyAccessTokenResponse{
-		UserID:  accessToken.UserID,
-		Created: accessToken.Created,
-		Expires: accessToken.Expires,
-		Scopes:  accessToken.Scopes,
+		UserID:    accessToken.UserID,
+		CreatedMS: accessToken.Created.UnixMilli(),
+		ExpiresMS: accessToken.Expires.UnixMilli(),
+		Scopes:    accessToken.Scopes,
 	})
 }
