@@ -9,6 +9,10 @@ ContinueWith is a service that proxies the OAuth2 flow between your backend and 
 3. Refresh and access token management
 4. Scope management
 
+For example, maybe you use Firebase, Supabase, or Clerk for manage your users and want to allow other sites to login users and access resources from your platform. ContinueWith manages this oauth flow on opt of your existing auth system :D
+
+Notion does this: They allow their users to log in with social providers like Google, and also allow other platforms to log in their users with Notion and access things like pages and databases through the Notion API.
+
 What you need to do is:
 
 1. Make a pretty OAuth consent screen that matches your awesome site (we have a stellar guide to help you crush it quickly)
