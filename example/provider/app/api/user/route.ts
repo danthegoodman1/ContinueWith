@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { Level } from "level"
