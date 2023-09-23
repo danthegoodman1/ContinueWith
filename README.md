@@ -24,7 +24,7 @@ Notion does this: They allow their users to log in with social providers like Go
 ## All you need to do:
 
 1. Make a pretty OAuth consent screen that matches your awesome site (we have a stellar guide to help you crush it quickly)
-2. Make an API endpoint that we can forward your bearer token or session to when your users give consent, and you give us some user info
+2. Make an API endpoint that we can forward your bearer token or session to when your users give consent, and you give us some user info (you hit this from your consent screen)
 3. Tell us what scopes are available
 4. Add any auth middleware you need to check the access token against ContinueWith and get back user info, scopes, etc.
 
