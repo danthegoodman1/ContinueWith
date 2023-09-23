@@ -41,3 +41,7 @@ The user api is the endpoint that clients use to handle the oauth2 flow with you
 ## Admin API
 
 The admin api allows you to check access tokens, manage clients, scopes, and more.
+
+## Client Credentials tokens
+
+Normal access tokens have the prefix `a_`. Client credential access tokens are a bit different: They have the prefix `ca_`, and they resolve to the user UserID `_client`.

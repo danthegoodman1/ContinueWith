@@ -8,6 +8,8 @@ package query
 import (
 	"context"
 	"time"
+
+	time "time"
 )
 
 const insertAccessToken = `-- name: InsertAccessToken :exec
@@ -31,7 +33,7 @@ insert into access_tokens (
 type InsertAccessTokenParams struct {
 	ID           string
 	ClientID     string
-	RefreshToken string
+	RefreshToken *string
 	UserID       string
 	Scopes       []string
 	Expires      time.Time

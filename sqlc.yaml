@@ -8,41 +8,9 @@ sql:
         sql_package: "pgx/v5"
         out: "query"
         package: "query"
+        emit_pointers_for_null_types: true
         overrides:
           # for some reason we sometimes need the catalog prefix and sometimes not although docs say we should always use it
-          - db_type: "pg_catalog.bool"
-            go_type: "database/sql.NullBool"
-            nullable: true
-          - db_type: "bool"
-            go_type: "database/sql.NullBool"
-            nullable: true
-
-          - db_type: "int8"
-            go_type: "database/sql.NullInt64"
-            nullable: true
-          - db_type: "pg_catalog.int8"
-            go_type: "database/sql.NullInt64"
-            nullable: true
-
-          - db_type: "int2"
-            go_type: "database/sql.NullInt16"
-            nullable: true
-          - db_type: "pg_catalog.int2"
-            go_type: "database/sql.NullInt16"
-            nullable: true
-
-          - db_type: "float4"
-            go_type: "database/sql.NullFloat64"
-            nullable: true
-
-          - db_type: "float8"
-            go_type: "database/sql.NullFloat64"
-            nullable: true
-
-          - db_type: "text"
-            go_type: "database/sql.NullString"
-            nullable: true
-
           - db_type: "timestamptz"
             go_type: "database/sql.NullTime"
             nullable: true
@@ -52,5 +20,9 @@ sql:
             nullable: false
 
           - db_type: "timestamptz"
-            go_type: "database/sql.NullTime"
-            nullable: false
+            go_type:
+              import: "time"
+              package: "time"
+              type: "Time"
+              pointer: true
+            nullable: true

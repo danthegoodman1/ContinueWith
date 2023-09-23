@@ -5,14 +5,15 @@
 package query
 
 import (
-	"database/sql"
 	"time"
+
+	time "time"
 )
 
 type AccessToken struct {
 	ID           string
 	ClientID     string
-	RefreshToken string
+	RefreshToken *string
 	UserID       string
 	Scopes       []string
 	Expires      time.Time
@@ -52,7 +53,7 @@ type RefreshToken struct {
 
 type Scope struct {
 	ID          string
-	Description sql.NullString
+	Description *string
 	Created     time.Time
 	Updated     time.Time
 }

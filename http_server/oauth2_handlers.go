@@ -33,6 +33,8 @@ var (
 
 	BearerTokenType = "bearer"
 	MacTokenType    = "mac"
+
+	ClientUserID = "_client"
 )
 
 type (
@@ -151,8 +153,49 @@ func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody Author
 }
 
 func (s *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody AuthorizeRequest) error {
-	// TODO: implement
-	return c.NoContent(http.StatusNotImplemented)
+	ctx := c.Request().Context()
+
+	// Lookup client
+	var client query.Client
+	clientAccessTokenID := utils.GenRandomIDWithSize("ca_", 16)
+	err := query.ReliableExec(ctx, pg.Pool, time.Second*10, func(ctx context.Context, q *query.Queries) (err error) {
+		client, err = q.SelectClient(ctx, reqBody.ClientID)
+		if err != nil {
+			return fmt.Errorf("error in SelectClient: %w", err)
+		}
+
+		// Insert a client credentials access token
+		err = q.InsertAccessToken(ctx, query.InsertAccessTokenParams{
+			ID:           clientAccessTokenID,
+			ClientID:     reqBody.ClientID,
+			RefreshToken: nil,
+			UserID:       "",
+			Scopes:       nil,
+			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
+		})
+		if err != nil {
+			return fmt.Errorf("error in InsertAccessToken: %w", err)
+		}
+		return
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrUnauthorizedClient, utils.Ptr("unknown client_id"), nil, reqBody.State)
+	}
+	if err != nil {
+		return c.InternalError(err, "error getting client info")
+	}
+
+	// Verify client not suspended
+	if client.Suspended {
+		return c.ReturnErrorResponse(reqBody.RedirectURI, AuthErrAccessDenied, utils.Ptr("client suspended"), nil, reqBody.State)
+	}
+
+	return c.JSON(http.StatusOK, AccessTokenResponse{
+		AccessToken:  clientAccessTokenID,
+		TokenType:    BearerTokenType,
+		ExpiresIn:    int(utils.AccessTokenExpireSeconds),
+		RefreshToken: "", // will be omitted
+	})
 }
 
 type (
@@ -236,7 +279,7 @@ func (s *HTTPServer) handleAuthorizationCodeRequest(c *CustomContext, request Ac
 			UserID:       code.UserID,
 			Scopes:       code.Scopes,
 			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
-			RefreshToken: refreshTokenID,
+			RefreshToken: utils.Ptr(refreshTokenID),
 		})
 		if err != nil {
 			return fmt.Errorf("error in InsertAccessToken: %w", err)
@@ -309,7 +352,7 @@ func (s *HTTPServer) handleRefreshTokenRequest(c *CustomContext, request AccessT
 			UserID:       refreshToken.UserID,
 			Scopes:       refreshToken.Scopes,
 			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
-			RefreshToken: lo.Ternary(expired, newRefreshToken, refreshToken.ID),
+			RefreshToken: utils.Ptr(lo.Ternary(expired, newRefreshToken, refreshToken.ID)),
 		})
 		if err != nil {
 			return fmt.Errorf("error in InsertAccessToken: %w", err)

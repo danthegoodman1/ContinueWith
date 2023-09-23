@@ -55,8 +55,8 @@ create index refresh_tokens_by_user_id on refresh_tokens(user_id);
 create table access_tokens (
      id text not null,
      client_id text not null references clients(id) on delete cascade,
-     refresh_token text not null,
-     user_id text not null,
+     refresh_token text,
+     user_id text not null, -- "_client" when client credentials
      scopes text[] not null default '{}', -- a subset of the refresh token scopes
      expires timestamptz not null,
      revoked bool not null default false,
