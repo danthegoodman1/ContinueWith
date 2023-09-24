@@ -169,7 +169,7 @@ func (s *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody Author
 			ID:           clientAccessTokenID,
 			ClientID:     reqBody.ClientID,
 			RefreshToken: nil,
-			UserID:       "",
+			UserID:       ClientUserID,
 			Scopes:       nil,
 			Expires:      time.Now().Add(time.Second * time.Duration(utils.AccessTokenExpireSeconds)),
 		})
