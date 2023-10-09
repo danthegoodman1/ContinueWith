@@ -19,6 +19,7 @@ Notion does this: They allow their users to log in with social providers like Go
   * [Examples](#examples)
   * [User API](#user-api)
   * [Admin API](#admin-api)
+  * [Client Credentials tokens](#client-credentials-tokens)
 <!-- TOC -->
 
 ## All you need to do:

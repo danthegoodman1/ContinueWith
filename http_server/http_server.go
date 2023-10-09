@@ -51,12 +51,14 @@ func StartHTTPServer() *HTTPServer {
 	s.Echo.GET("/hc", s.HealthCheck)
 
 	// oauth flow
-	oauthGroup := s.Echo.Group("/oauth")
+	oauthGroup := s.Echo.Group("/oauth2")
 	oauthGroup.GET("/authorize", ccHandler(s.GetAuthorize))
+	oauthGroup.POST("/token", ccHandler(s.PostAccessToken))
 
 	// admin endpoints
 	adminGroup := s.Echo.Group("/admin", AdminMiddleware)
 	adminGroup.GET("/access_token/:accessToken", ccHandler(s.CheckAccessToken))
+	adminGroup.GET("/client/:clientID", ccHandler(s.GetClientFromID))
 
 	s.Echo.Listener = listener
 	go func() {

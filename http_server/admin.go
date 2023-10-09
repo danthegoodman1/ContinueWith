@@ -43,3 +43,25 @@ func (s *HTTPServer) CheckAccessToken(c *CustomContext) error {
 		Scopes:    accessToken.Scopes,
 	})
 }
+
+func (s *HTTPServer) GetClientFromID(c *CustomContext) error {
+	ctx := c.Request().Context()
+	clientID := c.Param("clientID")
+
+	var client query.Client
+	err := query.ReliableExec(ctx, pg.Pool, time.Second*10, func(ctx context.Context, q *query.Queries) (err error) {
+		client, err = q.SelectClient(ctx, clientID)
+		if err != nil {
+			return fmt.Errorf("error in SelectClient: %w", err)
+		}
+		return nil
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.String(http.StatusNotFound, "client not found")
+	}
+	if err != nil {
+		c.InternalError(err, "error getting client")
+	}
+
+	return c.JSON(http.StatusOK, client)
+}

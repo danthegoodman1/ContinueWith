@@ -6,8 +6,6 @@ package query
 
 import (
 	"time"
-
-	time "time"
 )
 
 type AccessToken struct {
