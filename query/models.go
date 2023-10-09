@@ -34,6 +34,7 @@ type Client struct {
 	ID        string
 	Secret    string
 	Suspended bool
+	Name      string
 	Created   time.Time
 	Updated   time.Time
 }

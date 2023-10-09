@@ -1,6 +1,6 @@
 export interface Client {
   ID: string
-  Secret: string
+  Name: string
   Suspended: boolean
   Created: string
   Updated: string

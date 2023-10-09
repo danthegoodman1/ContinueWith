@@ -44,6 +44,14 @@ func (s *HTTPServer) CheckAccessToken(c *CustomContext) error {
 	})
 }
 
+type ClientResponse struct {
+	ID        string
+	Suspended bool
+	Name      string
+	Created   time.Time
+	Updated   time.Time
+}
+
 func (s *HTTPServer) GetClientFromID(c *CustomContext) error {
 	ctx := c.Request().Context()
 	clientID := c.Param("clientID")
@@ -63,5 +71,11 @@ func (s *HTTPServer) GetClientFromID(c *CustomContext) error {
 		c.InternalError(err, "error getting client")
 	}
 
-	return c.JSON(http.StatusOK, client)
+	return c.JSON(http.StatusOK, ClientResponse{
+		ID:        client.ID,
+		Suspended: client.Suspended,
+		Name:      client.Name,
+		Created:   client.Created,
+		Updated:   client.Updated,
+	})
 }

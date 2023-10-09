@@ -5,6 +5,7 @@ create table clients (
     id text not null,
     secret text not null,
     suspended bool not null default false,
+    name text not null,
 
     created timestamptz not null default now(),
     updated timestamptz not null default now(),

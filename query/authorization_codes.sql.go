@@ -8,8 +8,6 @@ package query
 import (
 	"context"
 	"time"
-
-	time "time"
 )
 
 const deleteAuthorizationCode = `-- name: DeleteAuthorizationCode :one

@@ -10,7 +10,7 @@ import (
 )
 
 const selectClient = `-- name: SelectClient :one
-select id, secret, suspended, created, updated
+select id, secret, suspended, name, created, updated
 from clients
 where id = $1
 `
@@ -22,6 +22,7 @@ func (q *Queries) SelectClient(ctx context.Context, id string) (Client, error) {
 		&i.ID,
 		&i.Secret,
 		&i.Suspended,
+		&i.Name,
 		&i.Created,
 		&i.Updated,
 	)

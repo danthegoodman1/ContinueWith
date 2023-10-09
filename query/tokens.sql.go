@@ -8,8 +8,6 @@ package query
 import (
 	"context"
 	"time"
-
-	time "time"
 )
 
 const insertAccessToken = `-- name: InsertAccessToken :exec
