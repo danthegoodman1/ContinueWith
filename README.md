@@ -1,5 +1,9 @@
 # ContinueWith
 
+## TODO
+
+- some endpoint assumed the browser was hitting us directly, this is probably an issue for integration so I started making things posts, but we probably need to decide whether the user has to implement the routes and forward info, or we proxy the consent UI through us.
+
 Become an OAuth2 provider with any auth backend.
 
 ContinueWith is a service that proxies the OAuth2 flow between your backend and clients (apps that want to use you as an oauth provider). It handles:

@@ -21,14 +21,14 @@ type ExchangeAuthForUserResponse struct {
 	UserID string
 }
 
-func ExchangeAuthForUserInfo(ctx context.Context, targetURL, authHeaderKey, authHeaderVal string) (*ExchangeAuthForUserResponse, error) {
+func ExchangeAuthForUserInfo(ctx context.Context, targetURL, authHeaderVal string) (*ExchangeAuthForUserResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error in http.NewRequestWithContext: %w", err)
 	}
 
-	req.Header.Set(authHeaderKey, authHeaderVal)
-	req.Header.Set("x-continuewith-auth", utils.AdminKey)
+	req.Header.Set("x-continuewith-user", authHeaderVal)
+	req.Header.Set("x-continuewith-admin", utils.AdminKey)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

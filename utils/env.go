@@ -8,7 +8,6 @@ var (
 	PGDSN = os.Getenv("PG_DSN")
 
 	ProviderAPIUserExchange = MustEnv("PROVIDER_USER_EXCHANGE_URL")
-	ProviderAuthHeader      = MustEnv("PROVIDER_AUTH_HEADER")
 
 	// CRDB by default, which means serializable isolation by default
 	IsPostgres = os.Getenv("IS_POSTGRES") == "1"

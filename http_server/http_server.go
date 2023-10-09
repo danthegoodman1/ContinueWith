@@ -52,7 +52,7 @@ func StartHTTPServer() *HTTPServer {
 
 	// oauth flow
 	oauthGroup := s.Echo.Group("/oauth2")
-	oauthGroup.GET("/authorize", ccHandler(s.GetAuthorize))
+	oauthGroup.POST("/authorize", ccHandler(s.PostAuthorize))
 	oauthGroup.POST("/token", ccHandler(s.PostAccessToken))
 
 	// admin endpoints

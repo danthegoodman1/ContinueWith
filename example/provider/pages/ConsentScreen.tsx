@@ -6,8 +6,22 @@ import { UserIDCookieName } from "./Home"
 import { db } from "../db"
 import { Client, GetClient } from "../continue_with"
 
+export interface ConsentParams {
+  /**
+   * This will be `code`
+   */
+  response_type: string
+  client_id: string
+  redirect_uri: string
+  /**
+   * Need to split by spaces
+   */
+  scope: string
+  state?: string
+}
+
 export default async function ConsentScreen(
-  req: Request<{}, {}, {}, { client_id: string }>,
+  req: Request<{}, {}, {}, ConsentParams>,
   res: Response
 ) {
   res.set("Content-Type", "text/html")
@@ -44,7 +58,19 @@ export default async function ConsentScreen(
   return res.send(
     render(
       <Body>
-        <h1>Log in with X</h1>
+        <h1>Log in with {client.Name}?</h1>
+        <h3>Scopes:</h3>
+        <p>{"(typically you'd just explain each one)"}</p>
+        <ul>
+          {req.query.scope
+            .split(" ")
+            .filter((scope) => scope !== "")
+            .map((scope) => {
+              return <li>{scope}</li>
+            })}
+        </ul>
+        <button hx-post="/consent-approve">Approve</button>
+        <button hx-post="/consent-deny">Deny</button>
       </Body>
     )
   )

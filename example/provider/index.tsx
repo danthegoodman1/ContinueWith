@@ -6,7 +6,7 @@ import HomePage, { UserIDCookieName } from "./pages/Home"
 import cookieParser from "cookie-parser"
 import "./db"
 import { db } from "./db"
-import ConsentScreen from "./pages/ConsentScreen"
+import ConsentScreen, { ConsentParams } from "./pages/ConsentScreen"
 
 declare global {
   // namespace Express {
@@ -49,12 +49,9 @@ app.post("/register", async (req: Request<{}, {}, { name: string }>, res) => {
   res.send()
 })
 
-app.get(
-  "/consent",
-  async (req: Request<{}, {}, {}, { client_id: string }>, res) => {
-    await ConsentScreen(req, res)
-  }
-)
+app.get("/consent", async (req: Request<{}, {}, {}, ConsentParams>, res) => {
+  await ConsentScreen(req, res)
+})
 
 app.listen(port, () => {
   console.log(`Listening on port ${port}...`)

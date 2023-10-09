@@ -45,12 +45,19 @@ type (
 		Scope        string  `query:"scope"`
 		State        *string `query:"state"`
 	}
+	PostAuthorizeRequest struct {
+		ResponseType string  `json:"response_type" validate:"require"`
+		ClientID     string  `json:"client_id" validate:"require"`
+		RedirectURI  string  `json:"redirect_uri"`
+		Scope        string  `json:"scope"`
+		State        *string `json:"state"`
+	}
 )
 
 // The consent screen has provided a result
-func (s *HTTPServer) GetAuthorize(c *CustomContext) error {
+func (s *HTTPServer) PostAuthorize(c *CustomContext) error {
 	logger := zerolog.Ctx(c.Request().Context())
-	var reqBody AuthorizeRequest
+	var reqBody PostAuthorizeRequest
 	if err := ValidateRequest(c, &reqBody); err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
@@ -76,7 +83,7 @@ func (s *HTTPServer) GetAuthorize(c *CustomContext) error {
 	}
 }
 
-func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody AuthorizeRequest) error {
+func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody PostAuthorizeRequest) error {
 	ctx := c.Request().Context()
 	logger := zerolog.Ctx(ctx)
 
@@ -119,7 +126,7 @@ func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody Author
 	}
 
 	// Forward auth header to provider API and get user info back
-	userInfo, err := provider_api.ExchangeAuthForUserInfo(ctx, utils.ProviderAPIUserExchange, utils.ProviderAuthHeader, c.Request().Header.Get(utils.ProviderAuthHeader))
+	userInfo, err := provider_api.ExchangeAuthForUserInfo(ctx, utils.ProviderAPIUserExchange, c.Request().Header.Get("x-continuewith-user"))
 	if err != nil {
 		var errType, errDesc string
 		if isClientError := errors.Is(err, provider_api.ErrClientError); isClientError {
@@ -152,7 +159,7 @@ func (s *HTTPServer) handleGetAuthorizationCode(c *CustomContext, reqBody Author
 	return c.ReturnAuthorizeRedirectURI(reqBody.RedirectURI, authCode, nil)
 }
 
-func (s *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody AuthorizeRequest) error {
+func (s *HTTPServer) handleGetClientCredentials(c *CustomContext, reqBody PostAuthorizeRequest) error {
 	ctx := c.Request().Context()
 
 	// Lookup client
